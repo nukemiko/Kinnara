@@ -21,8 +21,9 @@ python 3.6 及以上版本
 
 ### 安装步骤
 
-1. `git clone <url>`
+1. `git clone https://github.com/nukemiko/Kinnara.git`
 2. 找到克隆下来的仓库，把仓库的路径加入 `PYTHONPATH` 环境变量，或者加入 `.pth` 文件
+（后续版本中会加入 setup.py）
 
 ## 如何使用？
 
