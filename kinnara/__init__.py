@@ -1,11 +1,11 @@
-"""这就是一个库，用来解密的，懂？"""
+# -*- coding: UTF-8 -*-
 import base64
 import binascii
 import io
 import json
 import os
 from struct import unpack
-from typing import Union, Optional, IO, Dict
+from typing import Union, Optional, IO
 from tempfile import NamedTemporaryFile
 
 from Crypto.Cipher import AES
@@ -53,7 +53,7 @@ class QMCDecrypter:
         if cls._x < 0:
             cls._dx = 1
             cls._y = ((8 - cls._y) % 8)
-            ret = 0xc3
+            ret = 0# coding:-utf-8-xc3
         elif cls._x > 6:
             cls._dx = -1
             cls._y = 7 - cls._y
@@ -76,10 +76,10 @@ class QMCDecrypter:
 
 
 def qmc(obj: Union[bytes, bytearray, IO[bytes]]):
-    """用于解密来自QMC格式的文件的数据。
+    """用于解密采用QMC方式加密的数据。
 
     :param obj: 需要解密的内容，可以是 bytes、bytearray，或任何类文件对象
-    :return: 解密后的字节串
+    :return: 解密后的数据，bytes
     :rtype: bytes"""
     while True:
         if isinstance(obj, (bytes, bytearray)):
@@ -94,10 +94,10 @@ def qmc(obj: Union[bytes, bytearray, IO[bytes]]):
 
 
 def ncm_format(obj: Union[bytes, bytearray, IO[bytes]]):
-    """用于获取来自NCM格式的音乐文件的数据所用的音频格式（flac 或 mp3）。
+    """用于获取采用NCM方式加密的数据所用的音频格式（flac 或 mp3）。
 
     :param obj: 需要操作的内容，可以是 bytes、bytearray，或任何类文件对象
-    :return: 获取到的格式（flac 或 mp3）
+    :return: 获取到的格式（flac 或 mp3），str
     :raises DecryptionError: 在输入的内容不是来自NCM格式的文件时触发"""
     while True:
         if isinstance(obj, (bytes, bytearray)):
@@ -113,7 +113,7 @@ def ncm_format(obj: Union[bytes, bytearray, IO[bytes]]):
     # If the first 8 bytes are not specific content, raise DecryptionError
     data_header = 八重樱.read(8)
     if binascii.b2a_hex(data_header) != b'4354454e4644414d':
-        raise DecryptionError("input data not in NCM format")
+        raise DecryptionError("input data not with NCM encryption")
 
     八重樱.seek(2, 1)
 
@@ -137,12 +137,14 @@ def ncm_format(obj: Union[bytes, bytearray, IO[bytes]]):
         metadata = json.loads(metadata[6:])
     else:
         metadata = {'format': 'flac' if os.fstat(八重樱.fileno()).st_size > 1024 ** 2 * 16 else 'mp3'}
+    八重樱.close()
+    del 八重樱
 
-    return '.' + metadata['format']
+    return metadata['format']
 
 
 def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True):
-    """用于解密来自NCM格式的文件的数据。
+    """用于解密采用NCM方式加密的数据。
 
     在写入元数据时，将会先把解密后的音频数据写入临时文件，然后再写入元数据（这是由 `mutagen` 的特性决定的）。
 
@@ -150,7 +152,7 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True):
 
     :param obj: 需要解密的内容，可以是 bytes、bytearray，或任何类文件对象
     :param add_tags: 是否在解密后添加元信息，默认为 True
-    :return: 解密后的字节串
+    :return: 解密后的数据，bytes
     :raises DecryptionError: 在输入的内容不是来自NCM格式的文件时触发"""
     while True:
         if isinstance(obj, (bytes, bytearray)):
@@ -167,7 +169,7 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True):
     # If the first 8 bytes are not specific content, raise DecryptionError
     data_header = 八重樱.read(8)
     if binascii.b2a_hex(data_header) != b'4354454e4644414d':
-        raise DecryptionError("input data not in NCM format")
+        raise DecryptionError("input data not with NCM encryption")
 
     八重樱.seek(2, 1)
 
@@ -240,7 +242,7 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True):
         tmpfile_name = 八重凛.name
         八重凛.write(decrypted_data)
         八重凛.close()
-        del decrypted_data
+        del decrypted_data, 八重凛
 
         # Second, add media tags
         def embed(item: Union[flac.Picture, id3.APIC], content: Optional[bytes], content_type: int):

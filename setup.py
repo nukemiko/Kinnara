@@ -1,8 +1,9 @@
+# -*- coding: UTF-8 -*-
 from setuptools import setup, find_packages
 
 setup(
         name='kinnara',
-        version='1.0',
+        version='1.1',
         packages=find_packages(),
         url='https://github.com/kinnara',
         license='MIT',
