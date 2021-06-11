@@ -1,6 +1,4 @@
-"""朋友宋的，唐兄给的，秦戚借的，清明的时候晋的，商周买的，元里隋手捡的，两大汉丢夏的，魏蜀送的。
-
-宝友铐近点，刑啊，有点役思啊，日子越来越有判头了"""
+"""这就是一个库，用来解密的，懂？"""
 import base64
 import binascii
 import io
@@ -14,8 +12,6 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 from Crypto.Util.strxor import strxor
 from mutagen import mp3, flac, id3
-
-__all__ = ['qmc', 'ncm']
 
 
 class DecryptionError(Exception):
@@ -97,18 +93,68 @@ def qmc(obj: Union[bytes, bytearray, IO[bytes]]):
     return QMCDecrypter.decrypt(input_bytes=input_bytes)
 
 
-def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=False) -> Dict[str, Union[str, bytes]]:
-    """用于解密来自NCM格式的文件的数据。
+def ncm_format(obj: Union[bytes, bytearray, IO[bytes]]):
+    """用于获取来自NCM格式的音乐文件的数据所用的音频格式（flac 或 mp3）。
 
-    :param obj: 需要解密的内容，可以是 bytes、bytearray，或任何类文件对象
-    :param add_tags: 是否在解密后添加元信息，默认为 True
-    :param only_get_format: 是否只获取音乐文件的格式，默认为 False
-    :return: {'format': [音乐格式], 'data': [解密后字节串]}
-    :rtype: Dict[str, Union[str, bytes]]
+    :param obj: 需要操作的内容，可以是 bytes、bytearray，或任何类文件对象
+    :return: 获取到的格式（flac 或 mp3）
     :raises DecryptionError: 在输入的内容不是来自NCM格式的文件时触发"""
     while True:
         if isinstance(obj, (bytes, bytearray)):
-            八级大狂风 = io.BytesIO(obj)
+            八重樱 = io.BytesIO(obj)
+            break
+        elif getattr(obj, 'read', None):
+            obj = obj.read()
+        else:
+            raise TypeError(f"only access bytes, bytearray or file-like object, but input {obj.__class__.__name__}")
+
+    meta_key = binascii.a2b_hex('2331346C6A6B5F215C5D2630553C2728')
+
+    # If the first 8 bytes are not specific content, raise DecryptionError
+    data_header = 八重樱.read(8)
+    if binascii.b2a_hex(data_header) != b'4354454e4644414d':
+        raise DecryptionError("input data not in NCM format")
+
+    八重樱.seek(2, 1)
+
+    # Skip all key data
+    key_len = 八重樱.read(4)
+    key_len = unpack('<I', bytes(key_len))[0]
+
+    八重樱.seek(key_len, 1)
+
+    # Get meta data
+    meta_len = 八重樱.read(4)
+    meta_len = unpack('<I', bytes(meta_len))[0]
+
+    if meta_len:
+        metadata = bytearray(八重樱.read(meta_len))
+        metadata = bytes(bytearray([byte ^ 0x63 for byte in metadata]))
+        metadata = base64.b64decode(metadata[22:])
+
+        cryptor = AES.new(meta_key, AES.MODE_ECB)
+        metadata = unpad(cryptor.decrypt(metadata), 16).decode('UTF-8')
+        metadata = json.loads(metadata[6:])
+    else:
+        metadata = {'format': 'flac' if os.fstat(八重樱.fileno()).st_size > 1024 ** 2 * 16 else 'mp3'}
+
+    return '.' + metadata['format']
+
+
+def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True):
+    """用于解密来自NCM格式的文件的数据。
+
+    在写入元数据时，将会先把解密后的音频数据写入临时文件，然后再写入元数据（这是由 `mutagen` 的特性决定的）。
+
+    如果需要处理的数据或文件较多，可能会引起系统的卡顿。
+
+    :param obj: 需要解密的内容，可以是 bytes、bytearray，或任何类文件对象
+    :param add_tags: 是否在解密后添加元信息，默认为 True
+    :return: 解密后的字节串
+    :raises DecryptionError: 在输入的内容不是来自NCM格式的文件时触发"""
+    while True:
+        if isinstance(obj, (bytes, bytearray)):
+            八重樱 = io.BytesIO(obj)
             break
         elif getattr(obj, 'read', None):
             obj = obj.read()
@@ -119,17 +165,17 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=
     meta_key = binascii.a2b_hex('2331346C6A6B5F215C5D2630553C2728')
 
     # If the first 8 bytes are not specific content, raise DecryptionError
-    data_header = 八级大狂风.read(8)
+    data_header = 八重樱.read(8)
     if binascii.b2a_hex(data_header) != b'4354454e4644414d':
         raise DecryptionError("input data not in NCM format")
 
-    八级大狂风.seek(2, 1)
+    八重樱.seek(2, 1)
 
     # Get key data
-    key_len = 八级大狂风.read(4)
+    key_len = 八重樱.read(4)
     key_len = unpack('<I', bytes(key_len))[0]
 
-    key_data = bytearray(八级大狂风.read(key_len))
+    key_data = bytearray(八重樱.read(key_len))
     key_data = bytes(bytearray(byte ^ 0x64 for byte in key_data))
 
     cryptor = AES.new(core_key, AES.MODE_ECB)
@@ -146,11 +192,11 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=
         S[i], S[j] = S[j], S[i]
 
     # Get meta data
-    meta_len = 八级大狂风.read(4)
+    meta_len = 八重樱.read(4)
     meta_len = unpack('<I', bytes(meta_len))[0]
 
     if meta_len:
-        metadata = bytearray(八级大狂风.read(meta_len))
+        metadata = bytearray(八重樱.read(meta_len))
         metadata = bytes(bytearray([byte ^ 0x63 for byte in metadata]))
         identifier = metadata.decode('UTF-8')
         metadata = base64.b64decode(metadata[22:])
@@ -159,30 +205,27 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=
         metadata = unpad(cryptor.decrypt(metadata), 16).decode('UTF-8')
         metadata = json.loads(metadata[6:])
     else:
-        metadata = {'format': 'flac' if os.fstat(八级大狂风.fileno()).st_size > 1024 ** 2 * 16 else 'mp3'}
+        metadata = {'format': 'flac' if os.fstat(八重樱.fileno()).st_size > 1024 ** 2 * 16 else 'mp3'}
         identifier = ''
 
-    if only_get_format:
-        return {'format': metadata['format'], 'data': b''}
-
-    八级大狂风.seek(5, 1)
+    八重樱.seek(5, 1)
 
     # Get album cover
-    image_space = 八级大狂风.read(4)
+    image_space = 八重樱.read(4)
     image_space = unpack('<I', bytes(image_space))[0]
-    image_size = 八级大狂风.read(4)
+    image_size = 八重樱.read(4)
     image_size = unpack('<I', bytes(image_size))[0]
     if image_size:
-        image_data = 八级大狂风.read(image_size)
+        image_data = 八重樱.read(image_size)
     else:
         image_data = None
 
-    八级大狂风.seek(image_space - image_size, 1)
+    八重樱.seek(image_space - image_size, 1)
 
     # Get decrypted media data
-    encrypted_data = 八级大狂风.read()
-    八级大狂风.close()
-    del 八级大狂风
+    encrypted_data = 八重樱.read()
+    八重樱.close()
+    del 八重樱
 
     # Stream cipher
     stream = [S[(S[i] + S[(i + S[i]) & 0xFF]) & 0xFF] for i in range(256)]
@@ -193,10 +236,10 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=
     # Add media tags to decrypted data
     # First, write encrypted data to a temporary file
     if add_tags:
-        八级大比妞 = NamedTemporaryFile(mode='wb', delete=False)
-        tmpfile_name = 八级大比妞.name
-        八级大比妞.write(decrypted_data)
-        八级大比妞.close()
+        八重凛 = NamedTemporaryFile(mode='wb', delete=False)
+        tmpfile_name = 八重凛.name
+        八重凛.write(decrypted_data)
+        八重凛.close()
         del decrypted_data
 
         # Second, add media tags
@@ -247,7 +290,5 @@ def ncm(obj: Union[bytes, bytearray, IO[bytes]], add_tags=True, only_get_format=
         os.remove(tmpfile_name)
     else:
         ret = decrypted_data
-
-    ret = {'format': metadata['format'], 'data': ret}
 
     return ret
