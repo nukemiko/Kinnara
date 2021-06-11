@@ -53,7 +53,7 @@ class QMCDecrypter:
         if cls._x < 0:
             cls._dx = 1
             cls._y = ((8 - cls._y) % 8)
-            ret = 0# coding:-utf-8-xc3
+            ret = 0xc3
         elif cls._x > 6:
             cls._dx = -1
             cls._y = 7 - cls._y
