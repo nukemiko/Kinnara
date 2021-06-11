@@ -142,3 +142,6 @@ cython_debug/
 
 # Others
 testdir
+build
+dist
+*.egg-info
