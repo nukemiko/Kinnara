@@ -1,4 +1,4 @@
-# Kinnara - 针对加密音乐文件的解密工具
+# Kinnara - 针对受版权保护的音乐文件的解密工具
 
 ![shieid](https://img.shields.io/badge/python-3.6%2B-green)
 
