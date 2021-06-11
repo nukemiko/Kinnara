@@ -10,7 +10,7 @@ Python 3.6 及以上版本
 
 ### 依赖关系
 
-- `pycryptodome`
+- `pycryptodomex`
 - `mutagen`
 
 如果使用[方法2](#方法2)安装 Kinnara，那么需要在安装 Kinnara 之前安装它们。

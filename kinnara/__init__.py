@@ -8,9 +8,9 @@ from struct import unpack
 from typing import Union, Optional, IO
 from tempfile import NamedTemporaryFile
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
-from Crypto.Util.strxor import strxor
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import unpad
+from Cryptodome.Util.strxor import strxor
 from mutagen import mp3, flac, id3
 
 
@@ -48,22 +48,23 @@ class QMCDecrypter:
 
     @classmethod
     def _next_mask(cls):
-        cls._index += 1
-        # ret = None
-        if cls._x < 0:
-            cls._dx = 1
-            cls._y = ((8 - cls._y) % 8)
-            ret = 0xc3
-        elif cls._x > 6:
-            cls._dx = -1
-            cls._y = 7 - cls._y
-            ret = 0xd8
-        else:
-            ret = cls._seed_map[cls._y][cls._x]
-        cls._x += cls._dx
-        if cls._index == 0x8000 or (cls._index > 0x8000 and (cls._index + 1) % 0x8000 == 0):
-            return cls._next_mask()
-        return ret
+        while True:
+            cls._index += 1
+            if cls._x < 0:
+                cls._dx = 1
+                cls._y = ((8 - cls._y) % 8)
+                ret = 0xc3
+            elif cls._x > 6:
+                cls._dx = -1
+                cls._y = 7 - cls._y
+                ret = 0xd8
+            else:
+                ret = cls._seed_map[cls._y][cls._x]
+            cls._x += cls._dx
+            if cls._index == 0x8000 or (cls._index > 0x8000 and (cls._index + 1) % 0x8000 == 0):
+                continue
+            else:
+                return ret
 
     @classmethod
     def decrypt(cls, input_bytes: bytes):
